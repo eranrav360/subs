@@ -208,8 +208,9 @@ html, body, #root {
 }
 .seg-mid-v { border-top: none; border-bottom: none; }
 
-/* Conning tower indicator on head cell */
-.seg-head-h::before, .seg-head-v::before {
+/* Conning tower indicator on head cell — scoped to .board only to prevent
+   fleet-cell ::before from escaping and stacking into a white ghost box */
+.board .seg-head-h::before, .board .seg-head-v::before {
   content: '';
   position: absolute;
   width: 28%; height: 28%;
