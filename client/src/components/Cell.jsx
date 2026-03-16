@@ -27,6 +27,8 @@ export function Cell({ state, segmentInfo, isPreview, isInvalid, onClick, onMous
   return (
     <div
       className={cls}
+      draggable={false}
+      onDragStart={e => e.preventDefault()}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

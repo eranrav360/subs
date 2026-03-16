@@ -124,23 +124,26 @@ wss.on('connection', ws => {
           }
         }
 
-        if (res.aiResult) {
-          send(ws, {
-            type: 'ai_shot', row: res.aiResult.row, col: res.aiResult.col,
-            hit: res.aiResult.hit, sunk: res.aiResult.sunk, won: res.aiResult.won
-          });
+        // Multiplayer game_over (immediate)
+        if (res.result.won && room.game.mode === 'multi') {
+          for (const [pid, pws] of Object.entries(room.players)) {
+            send(pws, { type: 'game_over', iWon: pid === playerId });
+          }
         }
 
-        if (res.result.won || (res.aiResult && res.aiResult.won)) {
-          const shooterWon = !!res.result.won;
-          if (room.game.mode === 'ai') {
-            send(ws, { type: 'game_over', iWon: shooterWon });
-          } else {
-            // Send personalised iWon to each player
-            for (const [pid, pws] of Object.entries(room.players)) {
-              send(pws, { type: 'game_over', iWon: pid === playerId ? shooterWon : !shooterWon });
+        if (res.aiResult) {
+          // Delay AI response 2s for realism
+          setTimeout(() => {
+            send(ws, {
+              type: 'ai_shot', row: res.aiResult.row, col: res.aiResult.col,
+              hit: res.aiResult.hit, sunk: res.aiResult.sunk, won: res.aiResult.won
+            });
+            if (res.aiResult.won) {
+              send(ws, { type: 'game_over', iWon: false });
             }
-          }
+          }, 2000);
+        } else if (res.result.won && room.game.mode === 'ai') {
+          send(ws, { type: 'game_over', iWon: true });
         }
         break;
       }
