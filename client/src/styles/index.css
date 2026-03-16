@@ -32,6 +32,20 @@ html, body, #root {
   padding: 1rem;
 }
 
+/* ==================== WS STATUS BANNER ==================== */
+.ws-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  text-align: center;
+  padding: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 100;
+}
+.ws-connecting   { background: #1a3366; color: var(--accent); }
+.ws-disconnected { background: #443300; color: #ffcc44; }
+.ws-failed       { background: #440000; color: #ff6666; }
+
 /* ==================== BUTTONS ==================== */
 .btn {
   padding: 0.6rem 1.4rem;

@@ -8,6 +8,7 @@ import { createEmptyBoard, applyShot } from './utils/board.js';
 
 // Screens: home | setup | waiting | battle | gameover
 export default function App() {
+  const [wsStatus, setWsStatus] = useState('connecting'); // connecting | connected | disconnected | failed
   const [screen, setScreen] = useState('home');
   const [gameMode, setGameMode] = useState(null);
   const [roomId, setRoomId] = useState(null);
@@ -130,7 +131,7 @@ export default function App() {
     }
   }, [playerId]);
 
-  const send = useWebSocket(handleMsg);
+  const send = useWebSocket(handleMsg, setWsStatus);
 
   function resetGame() {
     setScreen('home');
@@ -154,8 +155,18 @@ export default function App() {
     send({ type: 'fire', row: r, col: c });
   }
 
+  const wsLabel = {
+    connecting:   '🔄 מתחבר לשרת...',
+    disconnected: '⚠️ החיבור נקטע — מנסה שוב...',
+    failed:       '❌ לא ניתן להתחבר לשרת',
+  }[wsStatus];
+
   return (
     <div className="app" dir="rtl">
+      {wsLabel && (
+        <div className={`ws-banner ws-${wsStatus}`}>{wsLabel}</div>
+      )}
+
       {screen === 'home' && (
         <HomeScreen
           onPlayAI={() => send({ type: 'start_ai' })}

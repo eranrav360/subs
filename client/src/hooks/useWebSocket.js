@@ -1,14 +1,31 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { WS_URL } from '../utils/constants.js';
 
-export function useWebSocket(onMessage) {
+const MAX_RETRIES = 8;
+const BASE_DELAY = 1500; // ms
+
+export function useWebSocket(onMessage, onStatusChange) {
   const ws = useRef(null);
   const onMsg = useRef(onMessage);
-  onMsg.current = onMessage;
+  const onStatus = useRef(onStatusChange);
+  const retries = useRef(0);
+  const destroyed = useRef(false);
+  const retryTimer = useRef(null);
 
-  useEffect(() => {
+  onMsg.current = onMessage;
+  onStatus.current = onStatusChange;
+
+  const connect = useCallback(() => {
+    if (destroyed.current) return;
+
+    onStatus.current?.('connecting');
     const socket = new WebSocket(WS_URL);
     ws.current = socket;
+
+    socket.onopen = () => {
+      retries.current = 0;
+      onStatus.current?.('connected');
+    };
 
     socket.onmessage = e => {
       try {
@@ -17,8 +34,31 @@ export function useWebSocket(onMessage) {
       } catch {}
     };
 
-    return () => socket.close();
+    socket.onclose = () => {
+      if (destroyed.current) return;
+      onStatus.current?.('disconnected');
+      if (retries.current < MAX_RETRIES) {
+        const delay = Math.min(BASE_DELAY * 2 ** retries.current, 30000);
+        retries.current++;
+        retryTimer.current = setTimeout(connect, delay);
+      } else {
+        onStatus.current?.('failed');
+      }
+    };
+
+    socket.onerror = () => {
+      // onclose will fire after onerror, handles retry
+    };
   }, []);
+
+  useEffect(() => {
+    connect();
+    return () => {
+      destroyed.current = true;
+      clearTimeout(retryTimer.current);
+      ws.current?.close();
+    };
+  }, [connect]);
 
   const send = useCallback(msg => {
     if (ws.current?.readyState === WebSocket.OPEN) {
