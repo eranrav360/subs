@@ -1,9 +1,9 @@
-import { BOARD_SIZE, CELL } from '../utils/constants.js';
+import { BOARD_SIZE } from '../utils/constants.js';
 import { Cell } from './Cell.jsx';
 
 const COL_LABELS = 'ABCDEFGHIJ'.split('');
 
-export function Board({ board, shipCells = new Set(), previewCells = new Set(), invalidPreview = false, onCellClick, onCellHover, onCellLeave, clickable = false, label, wrapClassName = '' }) {
+export function Board({ board, segmentMap = new Map(), previewCells = new Set(), invalidPreview = false, onCellClick, onCellHover, onCellLeave, clickable = false, label, wrapClassName = '' }) {
   return (
     <div className={`board-wrap ${wrapClassName}`}>
       {label && <div className="board-label">{label}</div>}
@@ -21,7 +21,7 @@ export function Board({ board, shipCells = new Set(), previewCells = new Set(), 
                 <Cell
                   key={c}
                   state={cell}
-                  isShip={shipCells.has(key)}
+                  segmentInfo={segmentMap.get(key) || null}
                   isPreview={previewCells.has(key)}
                   isInvalid={invalidPreview}
                   onClick={clickable ? () => onCellClick?.(r, c) : undefined}

@@ -157,12 +157,124 @@ html, body, #root {
 }
 .cell-empty   { background: #061020; }
 .cell-empty:hover { background: #0d2040; cursor: crosshair; }
-.cell-ship    { background: #1e4080; border-color: #2a5aaa; }
 .cell-hit     { background: #660000; }
 .cell-miss    { background: #062030; }
 .cell-sunk    { background: #440000; }
-.cell-preview         { background: #004433 !important; }
-.cell-preview-invalid { background: #441100 !important; }
+.cell-preview         { background: #004433 !important; border-color: #006644 !important; }
+.cell-preview-invalid { background: #441100 !important; border-color: #882200 !important; }
+
+/* ==================== SHIP COLORS ==================== */
+:root {
+  --ship-carrier:    #0e5fa8;
+  --ship-battleship: #0e8a52;
+  --ship-cruiser:    #8a6e0e;
+  --ship-submarine:  #6e0e8a;
+  --ship-destroyer:  #8a1c0e;
+}
+.cell-ship {
+  background: var(--ship-color, #1e4080);
+  border-color: var(--ship-border, #2a5aaa);
+  position: relative;
+}
+.ship-carrier    { --ship-color: var(--ship-carrier);    --ship-border: #1a7acc; }
+.ship-battleship { --ship-color: var(--ship-battleship); --ship-border: #1aaa66; }
+.ship-cruiser    { --ship-color: var(--ship-cruiser);    --ship-border: #aa9010; }
+.ship-submarine  { --ship-color: var(--ship-submarine);  --ship-border: #9010aa; }
+.ship-destroyer  { --ship-color: var(--ship-destroyer);  --ship-border: #aa2810; }
+
+/* ---- Capsule shape — horizontal ships (RTL: head = right, tail = left) ---- */
+.seg-head-h {
+  border-left: none;
+  border-top-right-radius: 40%;
+  border-bottom-right-radius: 40%;
+}
+.seg-tail-h {
+  border-right: none;
+  border-top-left-radius: 40%;
+  border-bottom-left-radius: 40%;
+}
+.seg-mid-h { border-left: none; border-right: none; }
+
+/* ---- Capsule shape — vertical ships ---- */
+.seg-head-v {
+  border-bottom: none;
+  border-top-left-radius: 40%;
+  border-top-right-radius: 40%;
+}
+.seg-tail-v {
+  border-top: none;
+  border-bottom-left-radius: 40%;
+  border-bottom-right-radius: 40%;
+}
+.seg-mid-v { border-top: none; border-bottom: none; }
+
+/* Conning tower indicator on head cell */
+.seg-head-h::before, .seg-head-v::before {
+  content: '';
+  position: absolute;
+  width: 28%; height: 28%;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255,255,255,0.35);
+  border-radius: 2px;
+}
+
+/* ==================== SCOREBOARD ==================== */
+.scoreboard {
+  display: flex;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--accent2);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.score-half {
+  flex: 1;
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.score-half:first-child { border-left: 1px solid var(--accent2); }
+.score-label { font-size: 0.8rem; font-weight: 700; color: var(--text-dim); }
+.score-row { display: flex; gap: 0.8rem; font-size: 0.85rem; }
+.score-hit  { color: #ff6655; }
+.score-miss { color: #55aacc; }
+.score-divider { width: 1px; background: var(--accent2); }
+.score-bar-track {
+  height: 5px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.score-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.4s;
+}
+.score-fleet {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.fleet-ship {
+  display: flex;
+  gap: 1px;
+  transition: opacity 0.4s;
+}
+.fleet-ship.fleet-sunk { opacity: 0.2; filter: grayscale(1); }
+.fleet-cell {
+  width: 8px; height: 8px;
+  background: var(--ship-color, #1e4080);
+  border-color: var(--ship-color, #1e4080);
+  border: 1px solid var(--ship-border, #2a5aaa);
+}
+.fleet-cell.seg-head-h { border-top-right-radius: 40%; border-bottom-right-radius: 40%; border-left: none; }
+.fleet-cell.seg-tail-h { border-top-left-radius: 40%; border-bottom-left-radius: 40%; border-right: none; }
+.fleet-cell.seg-mid-h  { border-left: none; border-right: none; }
 
 /* ==================== BATTLE ==================== */
 .battle-screen { width: 100%; max-width: 1000px; }

@@ -1,22 +1,19 @@
 import { useState } from 'react';
 import { CELL } from '../utils/constants.js';
-import { getShipCells } from '../utils/board.js';
+import { computeSegmentMap } from '../utils/segments.js';
 import { Board } from './Board.jsx';
+import { Scoreboard } from './Scoreboard.jsx';
 
-export function BattleScreen({ myBoard, oppBoard, myShips, myTurn, status, onFire }) {
+export function BattleScreen({ myBoard, oppBoard, myShips, myTurn, status, onFire, stats }) {
   const [activeTab, setActiveTab] = useState('attack');
 
-  const myShipCells = new Set(
-    (myShips || []).flatMap(s =>
-      getShipCells(s.row, s.col, s.size, s.horizontal).map(([r, c]) => `${r},${c}`)
-    )
-  );
+  const mySegmentMap = computeSegmentMap(myShips || []);
 
   function handleFire(r, c) {
     if (!myTurn) return;
     if (oppBoard[r][c] !== CELL.EMPTY) return;
     onFire(r, c);
-    // On mobile: briefly show my board so player sees the AI/opponent response
+    // On mobile: briefly show my board so player sees the response
     setActiveTab('defend');
     setTimeout(() => setActiveTab('attack'), 1500);
   }
@@ -26,6 +23,8 @@ export function BattleScreen({ myBoard, oppBoard, myShips, myTurn, status, onFir
       <div className={`status-bar ${myTurn ? 'status-myturn' : 'status-wait'}`}>
         {status}
       </div>
+
+      <Scoreboard {...stats} />
 
       {/* Tabs — shown only on mobile via CSS */}
       <div className="battle-tabs">
@@ -53,7 +52,7 @@ export function BattleScreen({ myBoard, oppBoard, myShips, myTurn, status, onFir
         />
         <Board
           board={myBoard}
-          shipCells={myShipCells}
+          segmentMap={mySegmentMap}
           label="הלוח שלי"
           wrapClassName={activeTab === 'defend' ? 'visible' : ''}
         />

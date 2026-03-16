@@ -5,10 +5,12 @@ import { SetupScreen } from './components/SetupScreen.jsx';
 import { BattleScreen } from './components/BattleScreen.jsx';
 import { GameOverScreen } from './components/GameOverScreen.jsx';
 import { createEmptyBoard, applyShot } from './utils/board.js';
+import { playHit, playMiss, playSunk, playIncoming } from './utils/sounds.js';
 
-// Screens: home | setup | waiting | battle | gameover
+const INIT_STATS = { myHits: 0, myMisses: 0, oppHits: 0, oppMisses: 0, mySunkIds: [], oppSunkIds: [] };
+
 export default function App() {
-  const [wsStatus, setWsStatus] = useState('connecting'); // connecting | connected | disconnected | failed
+  const [wsStatus, setWsStatus] = useState('connecting');
   const [screen, setScreen] = useState('home');
   const [gameMode, setGameMode] = useState(null);
   const [roomId, setRoomId] = useState(null);
@@ -19,8 +21,8 @@ export default function App() {
   const [myTurn, setMyTurn] = useState(false);
   const [status, setStatus] = useState('');
   const [won, setWon] = useState(null);
-  // store my playerId so we know whose turn it is in multiplayer
   const [playerId, setPlayerId] = useState(null);
+  const [stats, setStats] = useState(INIT_STATS);
 
   const handleMsg = useCallback((msg) => {
     switch (msg.type) {
@@ -53,24 +55,27 @@ export default function App() {
         setScreen('waiting');
         break;
 
-      case 'game_start': {
-        // AI mode: msg.myTurn = true
-        // Multi mode: msg.firstTurn = playerId of who starts
-        const isMyTurn = msg.myTurn ?? (msg.firstTurn === msg._myId);
-        // For multi we compare firstTurn to our stored playerId
-        setMyTurn(prev => msg.myTurn ?? false);
+      case 'game_start':
+        setMyTurn(msg.myTurn ?? false);
         setStatus(msg.myTurn ? 'תורך לירות!' : 'ממתין ליריב...');
         setScreen('battle');
         break;
-      }
 
-      // shooter's own shot landed on opponent board
       case 'shot_result':
         if (msg.target === 'opponent') {
           setOppBoard(prev => applyShot(prev, msg.row, msg.col, msg.hit, msg.sunk));
+          if (msg.sunk) {
+            playSunk();
+            setStats(s => ({ ...s, myHits: s.myHits + 1, oppSunkIds: [...s.oppSunkIds, msg.sunk.id] }));
+          } else if (msg.hit) {
+            playHit();
+            setStats(s => ({ ...s, myHits: s.myHits + 1 }));
+          } else {
+            playMiss();
+            setStats(s => ({ ...s, myMisses: s.myMisses + 1 }));
+          }
           if (msg.won) {
-            setWon(true);
-            setScreen('gameover');
+            setWon(true); setScreen('gameover');
           } else if (msg.hit) {
             setStatus('פגיעה! תור נוסף!');
           } else {
@@ -78,12 +83,19 @@ export default function App() {
             setStatus('החטאה — תור היריב...');
           }
         } else {
-          // opponent shot at me
+          // Opponent shot at my board
           setMyBoard(prev => applyShot(prev, msg.row, msg.col, msg.hit, msg.sunk));
-          if (msg.won) {
-            setWon(false);
-            setScreen('gameover');
+          if (msg.hit) {
+            playIncoming();
+            if (msg.sunk) {
+              setStats(s => ({ ...s, oppHits: s.oppHits + 1, mySunkIds: [...s.mySunkIds, msg.sunk.id] }));
+            } else {
+              setStats(s => ({ ...s, oppHits: s.oppHits + 1 }));
+            }
+          } else {
+            setStats(s => ({ ...s, oppMisses: s.oppMisses + 1 }));
           }
+          if (msg.won) { setWon(false); setScreen('gameover'); }
         }
         break;
 
@@ -94,12 +106,20 @@ export default function App() {
 
       case 'ai_shot':
         setMyBoard(prev => applyShot(prev, msg.row, msg.col, msg.hit, msg.sunk));
+        if (msg.hit) {
+          playIncoming();
+          if (msg.sunk) {
+            setStats(s => ({ ...s, oppHits: s.oppHits + 1, mySunkIds: [...s.mySunkIds, msg.sunk.id] }));
+          } else {
+            setStats(s => ({ ...s, oppHits: s.oppHits + 1 }));
+          }
+        } else {
+          setStats(s => ({ ...s, oppMisses: s.oppMisses + 1 }));
+        }
         if (msg.won) {
-          setWon(false);
-          setScreen('gameover');
+          setWon(false); setScreen('gameover');
         } else if (!msg.hit) {
-          setMyTurn(true);
-          setStatus('תורך לירות!');
+          setMyTurn(true); setStatus('תורך לירות!');
         } else {
           setStatus('המחשב פגע! ממשיך...');
         }
@@ -117,6 +137,7 @@ export default function App() {
         setWon(null);
         setStatus('');
         setRoomStatus('');
+        setStats(INIT_STATS);
         setScreen('setup');
         break;
 
@@ -144,15 +165,7 @@ export default function App() {
     setStatus('');
     setWon(null);
     setPlayerId(null);
-  }
-
-  function handleSetupReady(placements) {
-    setMyShips(placements);
-    send({ type: 'submit_board', placements });
-  }
-
-  function handleFire(r, c) {
-    send({ type: 'fire', row: r, col: c });
+    setStats(INIT_STATS);
   }
 
   const wsLabel = {
@@ -163,9 +176,7 @@ export default function App() {
 
   return (
     <div className="app" dir="rtl">
-      {wsLabel && (
-        <div className={`ws-banner ws-${wsStatus}`}>{wsLabel}</div>
-      )}
+      {wsLabel && <div className={`ws-banner ws-${wsStatus}`}>{wsLabel}</div>}
 
       {screen === 'home' && (
         <HomeScreen
@@ -178,7 +189,7 @@ export default function App() {
       {screen === 'setup' && (
         <div>
           {roomStatus && <div className="room-banner">{roomStatus}</div>}
-          <SetupScreen onReady={handleSetupReady} />
+          <SetupScreen onReady={placements => { setMyShips(placements); send({ type: 'submit_board', placements }); }} />
         </div>
       )}
 
@@ -200,7 +211,8 @@ export default function App() {
           myShips={myShips}
           myTurn={myTurn}
           status={status}
-          onFire={handleFire}
+          onFire={(r, c) => send({ type: 'fire', row: r, col: c })}
+          stats={stats}
         />
       )}
 

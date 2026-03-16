@@ -132,8 +132,15 @@ wss.on('connection', ws => {
         }
 
         if (res.result.won || (res.aiResult && res.aiResult.won)) {
-          const iWon = res.result.won;
-          broadcast(room, { type: 'game_over', winner: iWon ? playerId : 'ai', iWon });
+          const shooterWon = !!res.result.won;
+          if (room.game.mode === 'ai') {
+            send(ws, { type: 'game_over', iWon: shooterWon });
+          } else {
+            // Send personalised iWon to each player
+            for (const [pid, pws] of Object.entries(room.players)) {
+              send(pws, { type: 'game_over', iWon: pid === playerId ? shooterWon : !shooterWon });
+            }
+          }
         }
         break;
       }

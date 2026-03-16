@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { SHIPS } from '../utils/constants.js';
 import { createEmptyBoard, canPlace, placeShip, removeShip, getShipCells } from '../utils/board.js';
+import { computeSegmentMap } from '../utils/segments.js';
 import { Board } from './Board.jsx';
 import { ShipSelector } from './ShipSelector.jsx';
 
@@ -29,10 +30,7 @@ export function SetupScreen({ onReady }) {
     cells.forEach(([r, c]) => previewCells.add(`${r},${c}`));
   }
 
-  const shipCells = new Set();
-  placements.forEach(p => {
-    getShipCells(p.row, p.col, p.size, p.horizontal).forEach(([r, c]) => shipCells.add(`${r},${c}`));
-  });
+  const segmentMap = computeSegmentMap(placements);
 
   function doPlace(r, c) {
     if (!selected) return;
@@ -114,7 +112,7 @@ export function SetupScreen({ onReady }) {
       <div className="setup-layout">
         <Board
           board={board}
-          shipCells={shipCells}
+          segmentMap={segmentMap}
           previewCells={previewCells}
           invalidPreview={invalidPreview}
           clickable={!!selected}
