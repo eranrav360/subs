@@ -208,9 +208,9 @@ export function SetupScreen({ onReady }) {
             <div className="move-controls">
               <div className="dpad" dir="ltr">
                 <button className="dpad-btn dpad-up"     onClick={() => handleArrow(-1,  0)}>↑</button>
-                <button className="dpad-btn dpad-left"   onClick={() => handleArrow( 0, -1)}>←</button>
+                <button className="dpad-btn dpad-left"   onClick={() => handleArrow( 0, +1)}>←</button>
                 <button className="dpad-btn dpad-center" onClick={handleRotateMoving}>↻</button>
-                <button className="dpad-btn dpad-right"  onClick={() => handleArrow( 0, +1)}>→</button>
+                <button className="dpad-btn dpad-right"  onClick={() => handleArrow( 0, -1)}>→</button>
                 <button className="dpad-btn dpad-down"   onClick={() => handleArrow(+1,  0)}>↓</button>
               </div>
               <button className="btn btn-secondary btn-sm dpad-done" onClick={() => setMovingId(null)}>
