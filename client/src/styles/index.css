@@ -130,8 +130,38 @@ html, body, #root {
 .ship-check { color: var(--success); font-size: 1.1rem; }
 
 .placed-list { display: flex; flex-direction: column; gap: 0.3rem; }
-.placed-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+.placed-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; padding: 2px 4px; border-radius: 4px; }
+.placed-item-active { background: var(--surface2); outline: 1px solid var(--accent); }
+.placed-actions { display: flex; gap: 4px; align-items: center; }
 .btn-remove { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 4px; }
+.btn-move { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 1rem; padding: 0 4px; }
+
+/* ── D-pad for repositioning placed ships ── */
+.move-controls { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-rows: repeat(3, 42px);
+  gap: 4px;
+}
+.dpad-up     { grid-column: 2; grid-row: 1; }
+.dpad-left   { grid-column: 1; grid-row: 2; }
+.dpad-center { grid-column: 2; grid-row: 2; }
+.dpad-right  { grid-column: 3; grid-row: 2; }
+.dpad-down   { grid-column: 2; grid-row: 3; }
+.dpad-btn {
+  width: 42px; height: 42px;
+  background: var(--surface2);
+  border: 1px solid var(--accent2);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s;
+}
+.dpad-btn:active { background: var(--accent2); }
+.dpad-done { margin-top: 0.2rem; }
 
 /* ==================== BOARD ==================== */
 .board-wrap { display: flex; flex-direction: column; align-items: center; }
@@ -389,9 +419,13 @@ html, body, #root {
 }
 
 /* ==================== TOUCH PLACEMENT ==================== */
+/* touch-confirm is shown/hidden purely by React state — no media query needed */
 .touch-confirm {
-  display: none;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
   padding: 0.5rem 1rem;
   margin-bottom: 0.5rem;
   border-radius: var(--radius);
@@ -400,7 +434,9 @@ html, body, #root {
   border: 1px solid var(--accent);
   color: var(--accent);
 }
+.touch-confirm-label { font-weight: 600; }
+.btn-sm { padding: 0.3rem 0.8rem; font-size: 0.85rem; }
+
 @media (hover: none) and (pointer: coarse) {
   .cell-empty:hover { background: #061020; } /* disable hover highlight on touch */
-  .touch-confirm { display: block; }
 }
