@@ -169,6 +169,7 @@ export default function App() {
   }
 
   const wsLabel = {
+    waking:       '⏳ מאתחל שרת... עלול לקחת עד 30 שניות',
     connecting:   '🔄 מתחבר לשרת...',
     disconnected: '⚠️ החיבור נקטע — מנסה שוב...',
     failed:       '❌ לא ניתן להתחבר לשרת',

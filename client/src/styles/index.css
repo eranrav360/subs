@@ -42,6 +42,7 @@ html, body, #root {
   font-weight: 600;
   z-index: 100;
 }
+.ws-waking       { background: #2a1a44; color: #cc99ff; }
 .ws-connecting   { background: #1a3366; color: var(--accent); }
 .ws-disconnected { background: #443300; color: #ffcc44; }
 .ws-failed       { background: #440000; color: #ff6666; }

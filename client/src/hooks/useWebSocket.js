@@ -2,22 +2,43 @@ import { useEffect, useRef, useCallback } from 'react';
 import { WS_URL } from '../utils/constants.js';
 
 const MAX_RETRIES = 8;
-const BASE_DELAY = 1500; // ms
+const BASE_DELAY  = 1500;
+
+// Derive HTTP health-check URL from the WebSocket URL
+const HEALTH_URL = WS_URL.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:') + '/health';
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 export function useWebSocket(onMessage, onStatusChange) {
-  const ws = useRef(null);
-  const onMsg = useRef(onMessage);
-  const onStatus = useRef(onStatusChange);
-  const retries = useRef(0);
+  const ws        = useRef(null);
+  const onMsg     = useRef(onMessage);
+  const onStatus  = useRef(onStatusChange);
+  const retries   = useRef(0);
   const destroyed = useRef(false);
   const retryTimer = useRef(null);
 
-  onMsg.current = onMessage;
+  onMsg.current    = onMessage;
   onStatus.current = onStatusChange;
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (destroyed.current) return;
 
+    // ── Step 1: wake the server via HTTP before opening WebSocket ──
+    onStatus.current?.('waking');
+    let serverUp = false;
+    while (!destroyed.current && !serverUp) {
+      try {
+        const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) serverUp = true;
+      } catch {
+        await sleep(3000);
+      }
+    }
+    if (destroyed.current) return;
+
+    // ── Step 2: open WebSocket now that server is awake ──
     onStatus.current?.('connecting');
     const socket = new WebSocket(WS_URL);
     ws.current = socket;
@@ -28,10 +49,7 @@ export function useWebSocket(onMessage, onStatusChange) {
     };
 
     socket.onmessage = e => {
-      try {
-        const msg = JSON.parse(e.data);
-        onMsg.current(msg);
-      } catch {}
+      try { onMsg.current(JSON.parse(e.data)); } catch {}
     };
 
     socket.onclose = () => {
@@ -46,9 +64,7 @@ export function useWebSocket(onMessage, onStatusChange) {
       }
     };
 
-    socket.onerror = () => {
-      // onclose will fire after onerror, handles retry
-    };
+    socket.onerror = () => { /* onclose handles retry */ };
   }, []);
 
   useEffect(() => {
