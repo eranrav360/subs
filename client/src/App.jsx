@@ -4,13 +4,17 @@ import { HomeScreen } from './components/HomeScreen.jsx';
 import { SetupScreen } from './components/SetupScreen.jsx';
 import { BattleScreen } from './components/BattleScreen.jsx';
 import { GameOverScreen } from './components/GameOverScreen.jsx';
+import { Notifications } from './components/Notifications.jsx';
 import { createEmptyBoard, applyShot } from './utils/board.js';
 import { playHit, playMiss, playSunk, playIncoming } from './utils/sounds.js';
+import { SHIPS } from './utils/constants.js';
 
 const INIT_STATS = { myHits: 0, myMisses: 0, oppHits: 0, oppMisses: 0, mySunkIds: [], oppSunkIds: [] };
+let _notifId = 0;
 
 export default function App() {
   const [wsStatus, setWsStatus] = useState('connecting');
+  const [notifs, setNotifs] = useState([]);
   const [screen, setScreen] = useState('home');
   const [gameMode, setGameMode] = useState(null);
   const [roomId, setRoomId] = useState(null);
@@ -23,6 +27,12 @@ export default function App() {
   const [won, setWon] = useState(null);
   const [playerId, setPlayerId] = useState(null);
   const [stats, setStats] = useState(INIT_STATS);
+
+  function addNotif(text, type = 'info') {
+    const id = ++_notifId;
+    setNotifs(prev => [...prev, { id, text, type }]);
+    setTimeout(() => setNotifs(prev => prev.filter(n => n.id !== id)), 3000);
+  }
 
   const handleMsg = useCallback((msg) => {
     switch (msg.type) {
@@ -59,6 +69,7 @@ export default function App() {
         setMyTurn(msg.myTurn ?? false);
         setStatus(msg.myTurn ? 'תורך לירות!' : 'ממתין ליריב...');
         setScreen('battle');
+        addNotif('⚔️ הקרב מתחיל!', 'info');
         break;
 
       case 'shot_result':
@@ -66,13 +77,17 @@ export default function App() {
           setOppBoard(prev => applyShot(prev, msg.row, msg.col, msg.hit, msg.sunk));
           if (msg.sunk) {
             playSunk();
+            const sunkName = SHIPS.find(s => s.id === msg.sunk.id)?.name || msg.sunk.id;
             setStats(s => ({ ...s, myHits: s.myHits + 1, oppSunkIds: [...s.oppSunkIds, msg.sunk.id] }));
+            addNotif(`☠️ הטבעת את ${sunkName}!`, 'success');
           } else if (msg.hit) {
             playHit();
             setStats(s => ({ ...s, myHits: s.myHits + 1 }));
+            addNotif('💥 פגיעה!', 'hit');
           } else {
             playMiss();
             setStats(s => ({ ...s, myMisses: s.myMisses + 1 }));
+            addNotif('💧 החטאה', 'miss');
           }
           if (msg.won) {
             setWon(true); setScreen('gameover');
@@ -88,9 +103,12 @@ export default function App() {
           if (msg.hit) {
             playIncoming();
             if (msg.sunk) {
+              const sunkName = SHIPS.find(s => s.id === msg.sunk.id)?.name || msg.sunk.id;
               setStats(s => ({ ...s, oppHits: s.oppHits + 1, mySunkIds: [...s.mySunkIds, msg.sunk.id] }));
+              addNotif(`💀 ${sunkName} שלך טבעה!`, 'danger');
             } else {
               setStats(s => ({ ...s, oppHits: s.oppHits + 1 }));
+              addNotif('💥 נפגעת!', 'danger');
             }
           } else {
             setStats(s => ({ ...s, oppMisses: s.oppMisses + 1 }));
@@ -102,6 +120,7 @@ export default function App() {
       case 'turn_change':
         setMyTurn(msg.turn === playerId);
         setStatus(msg.turn === playerId ? 'תורך לירות!' : 'ממתין ליריב...');
+        if (msg.turn === playerId) addNotif('🎯 תורך לירות!', 'turn');
         break;
 
       case 'ai_shot':
@@ -109,12 +128,16 @@ export default function App() {
         if (msg.hit) {
           playIncoming();
           if (msg.sunk) {
+            const sunkName = SHIPS.find(s => s.id === msg.sunk.id)?.name || msg.sunk.id;
             setStats(s => ({ ...s, oppHits: s.oppHits + 1, mySunkIds: [...s.mySunkIds, msg.sunk.id] }));
+            addNotif(`💀 ${sunkName} שלך טבעה!`, 'danger');
           } else {
             setStats(s => ({ ...s, oppHits: s.oppHits + 1 }));
+            addNotif('💥 המחשב פגע בך!', 'danger');
           }
         } else {
           setStats(s => ({ ...s, oppMisses: s.oppMisses + 1 }));
+          addNotif('💧 המחשב החטיא — תורך!', 'turn');
         }
         if (msg.won) {
           setWon(false); setScreen('gameover');
@@ -169,15 +192,16 @@ export default function App() {
   }
 
   const wsLabel = {
-    waking:       '⏳ מאתחל שרת... עלול לקחת עד 30 שניות',
-    connecting:   '🔄 מתחבר לשרת...',
-    disconnected: '⚠️ החיבור נקטע — מנסה שוב...',
-    failed:       '❌ לא ניתן להתחבר לשרת',
+    waking:       '🚢 הצוללת מוצאת את דרכה אליך... (עד 30 שניות)',
+    connecting:   '🔭 מתחברים לגשר הפיקוד...',
+    disconnected: '⚡ אות חלוש — מנסים שוב...',
+    failed:       '❌ לא ניתן ליצור קשר עם הצוללת',
   }[wsStatus];
 
   return (
     <div className="app" dir="rtl">
       {wsLabel && <div className={`ws-banner ws-${wsStatus}`}>{wsLabel}</div>}
+      <Notifications items={notifs} />
 
       {screen === 'home' && (
         <HomeScreen
